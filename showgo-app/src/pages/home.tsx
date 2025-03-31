@@ -82,13 +82,13 @@ export default function Home() {
         </div>
       )}
       {/* Chat container + */}
-      {messageSent && (
+      <div className="flex flex-row gap-4 h-[90%] w-full">
         <div className="flex-1 overflow-y-auto p-4 mt-12">
           <div
-            // className={`${
-            //   messageSent ? "max-w-2xl ml-2" : "max-w-3xl mx-auto"
-            // }`}
-            className="max-w-3xl mx-auto"
+            className={`${
+              messageSent ? "max-w-2xl ml-2" : "max-w-3xl mx-auto"
+            }`}
+            // className="max-w-3xl mx-auto"
           >
             {messages.map((message, index) => (
               <div
@@ -115,8 +115,22 @@ export default function Home() {
             <div ref={messagesEndRef} />
           </div>
         </div>
-      )}
-
+        {messageSent && (
+          <motion.div
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex-1 overflow-y-auto p-4 mt-12"
+          >
+            <iframe
+              src="https://app.hyperbrowser.ai"
+              height="500"
+              width="700"
+              title="Iframe Example"
+            ></iframe>
+          </motion.div>
+        )}
+      </div>
       {/* Input form */}
       <div className="border-t border-white/[0.1] p-4">
         <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
