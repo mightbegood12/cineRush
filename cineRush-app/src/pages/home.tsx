@@ -3,6 +3,7 @@ import Groq from "groq-sdk";
 import sendbtn from "../assets/send-btn.svg";
 import { motion } from "framer-motion";
 
+
 export default function Home() {
   const [messages, setMessages] = useState<
     Array<{ role: "user" | "assistant"; content: string }>
@@ -13,6 +14,7 @@ export default function Home() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -20,7 +22,7 @@ export default function Home() {
   const groq = new Groq({
     apiKey: import.meta.env.VITE_GROQ_API_KEY,
     dangerouslyAllowBrowser: true,
-  });
+  })
 
   useEffect(() => {
     scrollToBottom();
@@ -39,7 +41,7 @@ export default function Home() {
         },
         {
           role: "user",
-          content: input,
+          content: messages + input,
         },
       ],
       temperature: 1,
