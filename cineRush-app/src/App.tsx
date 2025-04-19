@@ -1,13 +1,32 @@
 import "./App.css";
-import Home from "./pages/home";
+import Home from "./pages/Home.tsx";
+import Login from "./pages/Login.tsx";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import PageNotFound from "./pages/PageNotFound.tsx";
+import { useAuth } from "@clerk/clerk-react";
+import { Bounce, ToastContainer } from "react-toastify";
 function App() {
+  const { userId, sessionId, getToken, isLoaded, isSignedIn } = useAuth();
+  console.log("User ID:", userId);
   return (
     <Router>
+      <ToastContainer
+        position="top-center"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+        transition={Bounce}
+      />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/chat" element={<Home />} />
-        {/* Add more routes as needed */}
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<PageNotFound />} />
       </Routes>
     </Router>
   );
