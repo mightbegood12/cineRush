@@ -1,15 +1,17 @@
 // server.js
-const express = require("express");
-const cors = require("cors");
-const { Groq } = require("groq-sdk");
-require("dotenv").config(); // Load environment variables from .env
+import express from "express";
+import cors from "cors";
+import { Groq } from "groq-sdk";
+import dotenv from "dotenv";
+import connectdatabase from "./config/mongodbconfig.js";
 const app = express();
 const port = process.env.PORT || 3001; // Use a port, e.g., 3001
 
 // Middleware
 app.use(cors()); // Enable CORS for all routes
 app.use(express.json()); // Parse JSON request bodies
-
+connectdatabase(); // Connect to MongoDB
+dotenv.config(); // Load environment variables from .env file
 // Groq API Key
 const groqApiKey = process.env.GROQ_API_KEY;
 

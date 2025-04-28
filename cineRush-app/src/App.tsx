@@ -5,9 +5,10 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import PageNotFound from "./pages/PageNotFound.tsx";
 import { useAuth } from "@clerk/clerk-react";
 import { Bounce, ToastContainer } from "react-toastify";
+import ChatPage from "./pages/ChatPage.tsx";
 function App() {
-  const { userId, sessionId, getToken, isLoaded, isSignedIn } = useAuth();
-  console.log("User ID:", userId);
+  const { userId, sessionId, getToken, isSignedIn } = useAuth();
+  // console.log("User ID:", userId);
   return (
     <Router>
       <ToastContainer
@@ -26,6 +27,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/chat/:chatId" element={<ChatPage />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </Router>

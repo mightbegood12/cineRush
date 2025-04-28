@@ -4,20 +4,24 @@ import { motion } from "framer-motion";
 import { useUser } from "@clerk/clerk-react";
 import { toast } from "react-toastify";
 
-export default function ChatInstance() {
+export default function ChatInstance({ chatId }: { chatId?: string }) {
   const [messages, setMessages] = useState<
     Array<{ role: "user" | "assistant"; content: string }>
   >([]);
   const [input, setInput] = useState("");
   const [messageSent, setMessageSent] = useState(false);
-  const [canBook, setCanBook] = useState(false);
-  // const [movieData, setmovieData] = useState
+  const [movieData, setmovieData] = useState({
+    date: null,
+    location: null,
+    movie_name: null,
+    preferences: { seats: null, quantity: null },
+    time: null,
+    can_book: false,
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { isSignedIn } = useUser();
-
-  console.log(isSignedIn);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -32,11 +36,13 @@ export default function ChatInstance() {
     const systemMessage = {
       role: "system",
       content:
-        "You are CineRush AI agent, address yourself as CineRush Guy. You are a Named Entity Recognition (NER) model specialized in movie ticket booking. Your task is to extract key details such as movie name, location, time, preferences, and date from the user's input and return the information in JSON format. Also when you have every necessary entities, add a boolean entity 'can_book' to the JSON output. If any required details are missing, prompt the user to provide them. Always include a reply_msg field with a natural response guiding the user through the booking process. Do not explicitly mention that you are extracting information. Once all necessary details are gathered, confirm with the user and indicate that you are proceeding with the booking. Keep your responses strictly related to movie ticket booking and do not provide assistance beyond this scope.",
+        "You are CineRush AI agent, address yourself as CineRush Guy. You are a Named Entity Recognition (NER) model specialized in movie ticket booking. Your task is to extract key details such as movie name, location, time, preferences, and date from the user's input and return the information in JSON format. Use the movieData json input as memory and only ask the missing detail. Also when you have every necessary entities, add a boolean entity 'can_book' to the JSON output. If any required details are missing, prompt the user to provide them. Always include a reply_msg field with a natural response guiding the user through the booking process. Do not explicitly mention that you are extracting information. Once all necessary details are gathered, confirm with the user and indicate that you are proceeding with the booking. Keep your responses strictly related to movie ticket booking and do not provide assistance beyond this scope.",
     };
-
-    const userMessage = { role: "user", content: messages + input };
-
+    const userMessage = {
+      role: "user",
+      content: JSON.stringify(movieData) + " " + input,
+    };
+    console.log(userMessage);
     try {
       const response = await fetch("http://localhost:3001/api/chat", {
         // Replace with your backend URL
@@ -46,7 +52,6 @@ export default function ChatInstance() {
         },
         body: JSON.stringify({ messages: [systemMessage, userMessage] }), // Send the messages
       });
-      console.log(messages);
 
       if (!response.ok) {
         // Handle HTTP errors
@@ -59,11 +64,10 @@ export default function ChatInstance() {
         ...prevMessages,
         { role: "assistant", content: jsonResponse.reply_msg || "" },
       ]);
-      console.log(jsonResponse);
-      setCanBook(jsonResponse.can_book);
+
+      setmovieData(jsonResponse);
     } catch (error) {
       console.error("Error calling backend API:", error);
-      // Handle network errors or JSON parsing errors
     }
   };
 
@@ -120,7 +124,9 @@ export default function ChatInstance() {
       >
         <div className="flex-1 overflow-y-auto p-4 ">
           <div
-            className={`${canBook ? "max-w-2xl ml-2" : "max-w-3xl mx-auto"}`}
+            className={`${
+              movieData.can_book ? "max-w-2xl ml-2" : "max-w-3xl mx-auto"
+            }`}
           >
             {messages.map((message, index) => (
               <div
@@ -147,7 +153,7 @@ export default function ChatInstance() {
             <div ref={messagesEndRef} />
           </div>
         </div>
-        {canBook && (
+        {movieData.can_book && (
           <>
             <motion.div
               initial={{ opacity: 0, x: 100 }}
