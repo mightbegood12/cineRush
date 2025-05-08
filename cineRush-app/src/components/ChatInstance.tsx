@@ -3,13 +3,23 @@ import sendbtn from "../assets/send-btn.svg";
 import { motion } from "framer-motion";
 import { useUser } from "@clerk/clerk-react";
 import { toast } from "react-toastify";
+import axios from "axios";
+import { backendURL } from "../config/backendConfig";
 
-export default function ChatInstance({ chatId }: { chatId?: string }) {
+type ChatInstanceProps = {
+  chatId: string | undefined;
+};
+
+export default function ChatInstance({ chatId }: ChatInstanceProps) {
+  // const [fetchedMessages, setfetchedMessages] = useState<
+  //   Array<{ role: string; content: string }>
+  // >([]);
   const [messages, setMessages] = useState<
-    Array<{ role: "user" | "assistant"; content: string }>
+    Array<{ role: string; content: string }>
   >([]);
   const [input, setInput] = useState("");
   const [messageSent, setMessageSent] = useState(false);
+  const [isloading, setIsloading] = useState(false);
   const [movieData, setmovieData] = useState({
     date: null,
     location: null,
@@ -23,14 +33,70 @@ export default function ChatInstance({ chatId }: { chatId?: string }) {
 
   const { isSignedIn } = useUser();
 
+  const fetchChatMessages = async (chatId: string | undefined) => {
+    if (!chatId) return;
+    try {
+      const response = await axios.post(`${backendURL}/api/chat/getMessages`, {
+        chatId,
+      });
+      if (response.data.success) {
+        setMessages(response.data.messages);
+        localStorage.setItem("chatTitle", response.data.chatTitle);
+        const fetchedMessages = response.data.messages;
+        if (fetchedMessages.length != 0) {
+          setMessageSent(true);
+        } else {
+          setMessageSent(false);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching chat messages:", error);
+    }
+  };
+
+  // Function to update chat messages in the backend
+  const updateChatMessages = async () => {
+    if (!chatId || messages.length === 0) return; // Ensure chatId and messages exist
+    try {
+      const response = await axios.put(
+        `${backendURL}/api/chat/updateMessages`,
+        {
+          chatId: chatId,
+          messages: messages,
+        }
+      );
+      if (response.data.success) {
+        console.log("Messages updated successfully");
+      }
+    } catch (error) {
+      console.error("Error updating chat messages:", error);
+      toast.error("Failed to update chat messages.");
+    }
+  };
+
+  // Scroll to the bottom of the chat
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
+    fetchChatMessages(chatId);
+  }, [chatId]);
+
+  useEffect(() => {
     scrollToBottom();
-    inputRef.current?.focus();
   }, [messages]);
+
+  // Handle browser tab close or refresh
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      updateChatMessages(); // Save messages before the user leaves
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [messages, chatId]);
 
   const defaultResponse = async (input: string) => {
     const systemMessage = {
@@ -42,9 +108,10 @@ export default function ChatInstance({ chatId }: { chatId?: string }) {
       role: "user",
       content: JSON.stringify(movieData) + " " + input,
     };
-    console.log(userMessage);
+    // console.log(userMessage);
+    setIsloading(true);
     try {
-      const response = await fetch("http://localhost:3001/api/chat", {
+      const response = await fetch(`${backendURL}/api/chat`, {
         // Replace with your backend URL
         method: "POST",
         headers: {
@@ -54,7 +121,6 @@ export default function ChatInstance({ chatId }: { chatId?: string }) {
       });
 
       if (!response.ok) {
-        // Handle HTTP errors
         console.error("HTTP error:", response.status);
         return; // Or throw an error
       }
@@ -64,10 +130,12 @@ export default function ChatInstance({ chatId }: { chatId?: string }) {
         ...prevMessages,
         { role: "assistant", content: jsonResponse.reply_msg || "" },
       ]);
-
       setmovieData(jsonResponse);
+      setIsloading(false);
     } catch (error) {
+      setIsloading(false);
       console.error("Error calling backend API:", error);
+      toast.error("Server Error. Please try again.");
     }
   };
 
@@ -150,6 +218,13 @@ export default function ChatInstance({ chatId }: { chatId?: string }) {
                 </motion.div>
               </div>
             ))}
+
+            {isloading && (
+              <div className="flex flex-col gap-2 mb-8 justify-start">
+                <div className="px-4 py-2 mx-2 h-1 w-42 animate-pulse rounded-full bg-[#8989893d]  text-white"></div>
+                <div className="px-4 py-2 mx-2 h-1 w-80 animate-pulse rounded-full bg-[#8989893d]  text-white"></div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
         </div>

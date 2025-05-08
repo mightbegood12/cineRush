@@ -1,22 +1,87 @@
 import { useState } from "react";
 import sideBarIconClose from "../assets/sidebarClose.svg";
 import sideBarIconOpen from "../assets/sidebarOpen.svg";
-import { NavLink, useNavigate } from "react-router-dom";
-import { v4 as uuidv4 } from "uuid";
+import { NavLink } from "react-router-dom";
 import newTicketIcon from "../assets/newTicket.svg";
+import { useAppContext } from "../context/AppContext";
+
 export default function SideBar() {
   const [collapsed, setCollapsed] = useState(false);
-  const [chatId, setChatId] = useState<string | null>(
-    localStorage.getItem("chatId")
-  );
-  const navigate = useNavigate();
+  const { chatIds, createNewChat } = useAppContext();
 
-  const createNewChat = () => {
-    const chatId = uuidv4();
-    setChatId(chatId);
-    localStorage.setItem("chatId", chatId);
-    navigate(`/chat/${chatId}`);
-  };
+  // const updateUser = async (user_id: string | undefined, chatId: string) => {
+  //   try {
+  //     const response = await axios.put(`${backendURL}/api/user/update`, {
+  //       user_id: user_id,
+  //       chatId: chatId,
+  //     });
+  //     if (response.data.success) {
+  //       console.log(response.data.success);
+  //     }
+  //   } catch (error) {
+  //     toast.error(`${error}`);
+  //   }
+  // };
+
+  // const fetchChatIds = async (user_id: string | undefined) => {
+  //   if (!user_id) return;
+  //   try {
+  //     const response = await axios.post(`${backendURL}/api/user/getChatIds`, {
+  //       user_id,
+  //     });
+  //     if (response.data.success) {
+  //       setFetchedChatIds(response.data.chatIds);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching chat messages:", error);
+  //   }
+  // };
+
+  // const createChatMessages = async (
+  //   user_id: string | undefined,
+  //   chatId: string
+  // ) => {
+  //   try {
+  //     const response = await axios.post(
+  //       `${backendURL}/api/chat/createMessages`,
+  //       {
+  //         user_id: user_id,
+  //         chatId: chatId,
+  //       }
+  //     );
+  //     if (response.data.success) {
+  //       toast.success("New Chat Created!");
+  //     }
+  //   } catch (error) {
+  //     toast.error(`Error: ${error}`);
+  //   }
+  // };
+
+  // const createNewChat = () => {
+  //   if (!isSignedIn || undefined) {
+  //     toast.error("Please Signin to continue!");
+  //     return;
+  //   } else {
+  //     const chatId = uuidv4();
+  //     updateUser(user?.id, chatId)
+  //       .then(() => {
+  //         createChatMessages(user?.id, chatId)
+  //           .then(() => {
+  //             fetchChatIds(user?.id); // Refresh chat IDs after creating a new chat
+  //             navigate(`/chat/${chatId}`);
+  //           })
+  //           .catch((error) => {
+  //             console.error("Failed to create chat messages:", error);
+  //           });
+  //       })
+  //       .catch((error) => {
+  //         console.error("Failed to create new chat:", error);
+  //       });
+  //   }
+  // };
+  // useEffect(() => {
+  //   fetchChatIds(user?.id);
+  // }, []);
 
   return (
     <div
@@ -62,21 +127,31 @@ export default function SideBar() {
         </div>
       </div>
 
-      <NavLink
-        to={`/chat/${chatId}`}
-        className={`${
-          collapsed ? "w-full" : "hidden"
-        } hover:bg-[#313131] h-fit px-4 py-2 transition-all duration-300 ease-out rounded-lg`}
-      >
-        Chat 1
-      </NavLink>
-      <div
-        className={`${
-          collapsed ? "w-full" : "hidden"
-        } hover:bg-[#313131] h-fit px-4 py-2 transition-all duration-300 ease-out rounded-lg`}
-      >
-        Chat 2
-      </div>
+      {chatIds ? (
+        chatIds.map((chatId, index) => (
+          <NavLink
+            key={index}
+            to={`/chat/${chatId}`}
+            className={`${
+              collapsed ? "w-full" : "hidden"
+            } hover:bg-[#313131] group relative h-fit px-4 py-2 transition-all duration-300 ease-out rounded-lg`}
+          >
+            {localStorage.getItem("chatTitle")} {index + 1}
+            <div className="group-hover:block absolute px-4 opacity-90 rounded-4xl py-2 w-max text-sm bg-black/[0.5] hidden">
+              {chatId}
+            </div>
+          </NavLink>
+        ))
+      ) : (
+        <div
+          onClick={createNewChat}
+          className={`${
+            collapsed ? "w-full" : "hidden"
+          } hover:bg-[#313131] h-fit px-4 py-2 transition-all duration-300 ease-out rounded-lg`}
+        >
+          Book New Movie
+        </div>
+      )}
     </div>
   );
 }

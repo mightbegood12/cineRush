@@ -6,7 +6,7 @@ const chatSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
-  userId: {
+  user_id: {
     type: String,
     required: true,
   },
@@ -20,7 +20,6 @@ const chatSchema = new mongoose.Schema({
     required: false,
     default: [],
   },
-  timestamps: true,
 });
 
 const chatModel = mongoose.model("Chat", chatSchema);

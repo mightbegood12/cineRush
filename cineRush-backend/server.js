@@ -4,6 +4,8 @@ import cors from "cors";
 import { Groq } from "groq-sdk";
 import dotenv from "dotenv";
 import connectdatabase from "./config/mongodbconfig.js";
+import userRouter from "./routes/userRouter.js";
+import chatRouter from "./routes/chatRoute.js";
 const app = express();
 const port = process.env.PORT || 3001; // Use a port, e.g., 3001
 
@@ -62,6 +64,10 @@ app.post("/api/chat", async (req, res) => {
     res.status(500).json({ error: "Failed to process the request" }); // Send an error response
   }
 });
+
+// API Endpoint for User Creation
+app.use("/api/user", userRouter);
+app.use("/api/chat", chatRouter);
 
 // Start the server
 app.listen(port, () => {

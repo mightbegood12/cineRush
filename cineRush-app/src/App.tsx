@@ -3,12 +3,41 @@ import Home from "./pages/Home.tsx";
 import Login from "./pages/Login.tsx";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import PageNotFound from "./pages/PageNotFound.tsx";
-import { useAuth } from "@clerk/clerk-react";
-import { Bounce, ToastContainer } from "react-toastify";
-import ChatPage from "./pages/ChatPage.tsx";
+import { RedirectToSignIn, useAuth, useUser } from "@clerk/clerk-react";
+import { Bounce, toast, ToastContainer } from "react-toastify";
+import ChatPage from "./pages/ChatPage.js";
+import axios from "axios";
+import { useCallback, useEffect, useState } from "react";
+import { backendURL } from "./config/backendConfig.tsx";
+
 function App() {
-  const { userId, sessionId, getToken, isSignedIn } = useAuth();
-  // console.log("User ID:", userId);
+  const { isSignedIn } = useAuth();
+  const { user } = useUser();
+  const [userCreated, setUserCreated] = useState(false);
+
+  // Memoize the createUser function
+  const createUser = useCallback(async () => {
+    try {
+      const response = await axios.post(`${backendURL}/api/user/create`, {
+        user_id: user?.id,
+        email: user?.emailAddresses[0].emailAddress,
+      });
+      if (response.data.success) {
+        toast.success("Login Successful!");
+        setUserCreated(true);
+      }
+    } catch (error) {
+      toast.error(`Error: ${error}`);
+    }
+  }, [user]);
+
+  // Run the effect only when userCreated is false
+  useEffect(() => {
+    if (!userCreated && user) {
+      createUser();
+    }
+  }, [userCreated, user, createUser]);
+
   return (
     <Router>
       <ToastContainer
@@ -25,9 +54,12 @@ function App() {
         transition={Bounce}
       />
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Home isSignedIn={isSignedIn} />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/chat/:chatId" element={<ChatPage />} />
+        <Route
+          path="/chat/:chatId"
+          element={isSignedIn ? <ChatPage /> : <RedirectToSignIn />}
+        />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </Router>
