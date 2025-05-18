@@ -1,35 +1,51 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import sendbtn from "../assets/send-btn.svg";
+import moreBtn from "../assets/moreBtn.svg";
+import crossBtn from "../assets/crossBtn.svg";
 import { motion } from "framer-motion";
 import { useUser } from "@clerk/clerk-react";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { backendURL } from "../config/backendConfig";
+import { useParams } from "react-router-dom";
 
-type ChatInstanceProps = {
-  chatId: string | undefined;
-};
+export default function ChatInstance() {
+  interface Preferences {
+    seats: string | null;
+    type: string | null;
+  }
+  interface MovieData {
+    date: string | null;
+    location: string | null;
+    movie_name: string | null;
+    preferences: Preferences;
+    time: string | null;
+    can_book: boolean;
+  }
 
-export default function ChatInstance({ chatId }: ChatInstanceProps) {
-  // const [fetchedMessages, setfetchedMessages] = useState<
-  //   Array<{ role: string; content: string }>
-  // >([]);
+  const { chatId } = useParams<{ chatId: string }>();
   const [messages, setMessages] = useState<
     Array<{ role: string; content: string }>
   >([]);
+  const previousChatIdRef = useRef<string | undefined>("");
   const [input, setInput] = useState("");
   const [messageSent, setMessageSent] = useState(false);
   const [isloading, setIsloading] = useState(false);
-  const [movieData, setmovieData] = useState({
+  const [expanded, setExpanded] = useState(false);
+  const [movieData, setmovieData] = useState<MovieData>({
     date: null,
     location: null,
     movie_name: null,
-    preferences: { seats: null, quantity: null },
+    preferences: { seats: null, type: null },
     time: null,
     can_book: false,
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Add a debounce timer ref and a flag for pending updates
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasPendingChanges = useRef(false);
 
   const { isSignedIn } = useUser();
 
@@ -41,6 +57,7 @@ export default function ChatInstance({ chatId }: ChatInstanceProps) {
       });
       if (response.data.success) {
         setMessages(response.data.messages);
+        setmovieData(response.data.movieData);
         localStorage.setItem("chatTitle", response.data.chatTitle);
         const fetchedMessages = response.data.messages;
         if (fetchedMessages.length != 0) {
@@ -55,24 +72,83 @@ export default function ChatInstance({ chatId }: ChatInstanceProps) {
   };
 
   // Function to update chat messages in the backend
-  const updateChatMessages = async () => {
-    if (!chatId || messages.length === 0) return; // Ensure chatId and messages exist
-    try {
-      const response = await axios.put(
-        `${backendURL}/api/chat/updateMessages`,
-        {
-          chatId: chatId,
-          messages: messages,
+  const updateChatMessages = useCallback(
+    async (
+      chatIdToUse: string,
+      messagesToUse: Array<{ role: string; content: string }>,
+      movieDataToUse: object
+    ) => {
+      if (!chatIdToUse || messagesToUse.length === 0) return;
+
+      // Reset the pending changes flag
+      hasPendingChanges.current = false;
+
+      try {
+        const response = await axios.put(
+          `${backendURL}/api/chat/updateMessages`,
+          {
+            chatId: chatIdToUse,
+            messages: messagesToUse,
+            movieData: movieDataToUse,
+          }
+        );
+        if (response.data.success) {
+          console.log("Messages updated successfully");
         }
-      );
-      if (response.data.success) {
-        console.log("Messages updated successfully");
+      } catch (error) {
+        console.error("Error updating chat messages:", error);
+        // toast.error("Failed to update chat messages.");
       }
-    } catch (error) {
-      console.error("Error updating chat messages:", error);
-      toast.error("Failed to update chat messages.");
+    },
+    []
+  );
+
+  // New debounced save function
+  const debounceSaveMessages = useCallback(() => {
+    // Mark that we have pending changes
+    hasPendingChanges.current = true;
+
+    // Clear existing timer if any
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
     }
-  };
+
+    // Set a new timer
+    debounceTimerRef.current = setTimeout(() => {
+      if (chatId && hasPendingChanges.current) {
+        updateChatMessages(chatId, messages, movieData);
+      }
+    }, 2000); // 2 second debounce
+  }, [chatId, messages, movieData, updateChatMessages]);
+
+  // Watch for message changes to trigger debounced save
+  useEffect(() => {
+    if (chatId && messages.length > 0) {
+      debounceSaveMessages();
+    }
+  }, [messages, movieData, chatId, debounceSaveMessages]);
+
+  // Save messages when navigating away from the page
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (chatId && hasPendingChanges.current) {
+        // Synchronous save when leaving the page
+        navigator.sendBeacon(
+          `${backendURL}/api/chat/updateMessages`,
+          JSON.stringify({
+            chatId,
+            messages,
+            movieData,
+          })
+        );
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [chatId, messages, movieData]);
 
   // Scroll to the bottom of the chat
   const scrollToBottom = () => {
@@ -80,29 +156,50 @@ export default function ChatInstance({ chatId }: ChatInstanceProps) {
   };
 
   useEffect(() => {
-    fetchChatMessages(chatId);
-  }, [chatId]);
-
-  useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // Handle browser tab close or refresh
+  // Save previous messages before switching chats
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      updateChatMessages(); // Save messages before the user leaves
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [messages, chatId]);
+    const prevChatId = previousChatIdRef.current;
+    if (prevChatId && prevChatId !== chatId && hasPendingChanges.current) {
+      // Immediately save when switching chats
+      updateChatMessages(prevChatId, messages, movieData);
+    }
+
+    // Clear any pending debounce timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+
+    // Set up for next render
+    previousChatIdRef.current = chatId;
+    // Clear messages so we fetch fresh ones
+    setMessages([]);
+    setmovieData({
+      date: null,
+      location: null,
+      movie_name: null,
+      preferences: { seats: null, type: null },
+      time: null,
+      can_book: false,
+    });
+    hasPendingChanges.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatId]);
+
+  useEffect(() => {
+    if (chatId) {
+      fetchChatMessages(chatId);
+    }
+  }, [chatId]);
 
   const defaultResponse = async (input: string) => {
     const systemMessage = {
       role: "system",
       content:
-        "You are CineRush AI agent, address yourself as CineRush Guy. You are a Named Entity Recognition (NER) model specialized in movie ticket booking. Your task is to extract key details such as movie name, location, time, preferences, and date from the user's input and return the information in JSON format. Use the movieData json input as memory and only ask the missing detail. Also when you have every necessary entities, add a boolean entity 'can_book' to the JSON output. If any required details are missing, prompt the user to provide them. Always include a reply_msg field with a natural response guiding the user through the booking process. Do not explicitly mention that you are extracting information. Once all necessary details are gathered, confirm with the user and indicate that you are proceeding with the booking. Keep your responses strictly related to movie ticket booking and do not provide assistance beyond this scope.",
+        "You are CineRush AI agent, address yourself as CineRush Guy. You are a Named Entity Recognition (NER) model specialized in movie ticket booking. Your task is to extract key details such as movie name, location, time, preferences (preferences is an object with seats and type value), and date from the user's input and return the information in JSON format. Use the movieData json input as memory and only ask the missing detail. Also when you have every necessary entities, add a boolean entity 'can_book' to the JSON output. If any required details are missing, prompt the user to provide them. Always include a reply_msg field with a natural response guiding the user through the booking process. Do not explicitly mention that you are extracting information. Once all necessary details are gathered, confirm with the user and indicate that you are proceeding with the booking. Keep your responses strictly related to movie ticket booking and do not provide assistance beyond this scope.",
     };
     const userMessage = {
       role: "user",
@@ -158,14 +255,14 @@ export default function ChatInstance({ chatId }: ChatInstanceProps) {
   };
 
   return (
-    <main className="flex flex-col h-screen w-[100%] bg-[#212121]">
+    <main className="flex flex-col h-screen justify-between w-[100%] bg-[#212121] overflow-auto">
       {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className={`flex flex-col text-white justify-center ${
-          messageSent ? "h-auto" : "h-[80%]"
+        className={`flex flex-col text-white justify-center z-20 ${
+          messageSent ? "h-auto sticky top-0 bg-[#212121]" : "h-full"
         } items-center p-4`}
       >
         <div
@@ -188,9 +285,9 @@ export default function ChatInstance({ chatId }: ChatInstanceProps) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex flex-row gap-4 h-[80%] w-full"
+        className="flex flex-row gap-4 h-auto w-full"
       >
-        <div className="flex-1 overflow-y-auto p-4 ">
+        <div className="flex-1 p-4 ">
           <div
             className={`${
               movieData.can_book ? "max-w-2xl ml-2" : "max-w-3xl mx-auto"
@@ -218,15 +315,14 @@ export default function ChatInstance({ chatId }: ChatInstanceProps) {
                 </motion.div>
               </div>
             ))}
-
             {isloading && (
               <div className="flex flex-col gap-2 mb-8 justify-start">
                 <div className="px-4 py-2 mx-2 h-1 w-42 animate-pulse rounded-full bg-[#8989893d]  text-white"></div>
                 <div className="px-4 py-2 mx-2 h-1 w-80 animate-pulse rounded-full bg-[#8989893d]  text-white"></div>
               </div>
             )}
-            <div ref={messagesEndRef} />
           </div>
+          <div ref={messagesEndRef} />
         </div>
         {movieData.can_book && (
           <>
@@ -240,20 +336,25 @@ export default function ChatInstance({ chatId }: ChatInstanceProps) {
               initial={{ opacity: 0, x: 100 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
-              className="flex-1 overflow-y-auto p-4"
+              className="flex group justify-center items-center p-4 h-max sticky top-32"
             >
-              <iframe
-                src="https://app.hyperbrowser.ai"
-                height="500"
-                width="700"
-                title="Iframe Example"
-              ></iframe>
+              <div className="w-[500px] relative flex flex-col gap-2 h-[400px] hover:blur-sm transition-all duration-200 overflow-hidden rounded-xl shadow-md">
+                <div className="w-full text-center animate-pulse font-black text-2xl h-full bg-white/[0.6]"></div>
+              </div>
+              <div
+                onClick={() => {
+                  setExpanded(!expanded);
+                }}
+                className="group-hover:block absolute hover:bg-white hover:text-black transition-all duration-300 cursor-pointer ease-in-out hidden px-4 py-2 bg-[#212121] rounded-2xl text-white"
+              >
+                Click to See Progress
+              </div>
             </motion.div>
           </>
         )}
       </motion.div>
-      {/* Input form */}
-      <div className="border-t bottom-0 w-[100%] z-20 bg-[#212121] border-white/[0.1] px-4 py-2">
+      {/* Chat Input */}
+      <div className="border-t sticky bottom-0 w-[100%] z-20 bg-[#212121] border-white/[0.1] px-4 py-2">
         <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
           <div className="flex items-center space-x-2 text-white mt-1">
             <input
@@ -276,6 +377,65 @@ export default function ChatInstance({ chatId }: ChatInstanceProps) {
             </button>
           </div>
         </form>
+      </div>
+      {/* Movie Data */}
+      {movieData && (
+        <div className="absolute top-8 right-0 m-12 z-40">
+          <div className="relative group">
+            <button className="w-10 h-10 p-2 rounded-full border border-white/50 text-white bg-transparent hover:bg-[#313131] transition-colors">
+              <img
+                src={moreBtn}
+                alt="More"
+                className="w-full h-full object-contain"
+              />
+            </button>
+            <div className="w-max absolute right-12 top-12 hidden group-hover:flex flex-col gap-2 bg-[#313131]/70 text-white text-sm px-4 py-3 rounded-2xl shadow-lg backdrop-blur-md transition-all">
+              <div>
+                <span className="font-medium">Movie:</span>{" "}
+                {movieData.movie_name}
+              </div>
+              <div>
+                <span className="font-medium">Date:</span> {movieData.date}
+              </div>
+              <div>
+                <span className="font-medium">Location:</span>{" "}
+                {movieData.location}
+              </div>
+              <div>
+                <span className="font-medium">Preferences:</span>{" "}
+                {movieData.preferences?.seats || "N/A"} +{" "}
+                {movieData.preferences?.type || "N/A"} seats
+              </div>
+              <div>
+                <span className="font-medium">Time:</span> {movieData.time}
+              </div>
+              {/* <div>
+                <span className="font-medium">Can Book:</span>{" "}
+                {movieData.can_book.toString()}
+              </div> */}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div
+        className={`${
+          expanded ? "flex" : "hidden"
+        } absolute z-40 top-0 left-0 justify-center items-center w-screen h-screen overflow-hidden bg-black/80`}
+      >
+        <div
+          onClick={() => {
+            setExpanded(!expanded);
+          }}
+          className="absolute top-2 right-0 select-none m-12 text-white rounded-full hover:bg-[#313131] z-20"
+        >
+          <img className="w-12 h-12" src={crossBtn} />
+        </div>
+        <iframe
+          src="https://app.hyperbrowser.ai"
+          className="w-[1000px] h-[600px]"
+          loading="lazy"
+        ></iframe>
       </div>
     </main>
   );

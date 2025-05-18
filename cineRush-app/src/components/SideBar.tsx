@@ -3,85 +3,13 @@ import sideBarIconClose from "../assets/sidebarClose.svg";
 import sideBarIconOpen from "../assets/sidebarOpen.svg";
 import { NavLink } from "react-router-dom";
 import newTicketIcon from "../assets/newTicket.svg";
+import newTicketIcon2 from "../assets/newTicket2.svg";
+import deleteBtn from "../assets/deleteBtn.svg";
 import { useAppContext } from "../context/AppContext";
 
 export default function SideBar() {
   const [collapsed, setCollapsed] = useState(false);
-  const { chatIds, createNewChat } = useAppContext();
-
-  // const updateUser = async (user_id: string | undefined, chatId: string) => {
-  //   try {
-  //     const response = await axios.put(`${backendURL}/api/user/update`, {
-  //       user_id: user_id,
-  //       chatId: chatId,
-  //     });
-  //     if (response.data.success) {
-  //       console.log(response.data.success);
-  //     }
-  //   } catch (error) {
-  //     toast.error(`${error}`);
-  //   }
-  // };
-
-  // const fetchChatIds = async (user_id: string | undefined) => {
-  //   if (!user_id) return;
-  //   try {
-  //     const response = await axios.post(`${backendURL}/api/user/getChatIds`, {
-  //       user_id,
-  //     });
-  //     if (response.data.success) {
-  //       setFetchedChatIds(response.data.chatIds);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching chat messages:", error);
-  //   }
-  // };
-
-  // const createChatMessages = async (
-  //   user_id: string | undefined,
-  //   chatId: string
-  // ) => {
-  //   try {
-  //     const response = await axios.post(
-  //       `${backendURL}/api/chat/createMessages`,
-  //       {
-  //         user_id: user_id,
-  //         chatId: chatId,
-  //       }
-  //     );
-  //     if (response.data.success) {
-  //       toast.success("New Chat Created!");
-  //     }
-  //   } catch (error) {
-  //     toast.error(`Error: ${error}`);
-  //   }
-  // };
-
-  // const createNewChat = () => {
-  //   if (!isSignedIn || undefined) {
-  //     toast.error("Please Signin to continue!");
-  //     return;
-  //   } else {
-  //     const chatId = uuidv4();
-  //     updateUser(user?.id, chatId)
-  //       .then(() => {
-  //         createChatMessages(user?.id, chatId)
-  //           .then(() => {
-  //             fetchChatIds(user?.id); // Refresh chat IDs after creating a new chat
-  //             navigate(`/chat/${chatId}`);
-  //           })
-  //           .catch((error) => {
-  //             console.error("Failed to create chat messages:", error);
-  //           });
-  //       })
-  //       .catch((error) => {
-  //         console.error("Failed to create new chat:", error);
-  //       });
-  //   }
-  // };
-  // useEffect(() => {
-  //   fetchChatIds(user?.id);
-  // }, []);
+  const { chatIds, createNewChat, deleteChat } = useAppContext();
 
   return (
     <div
@@ -106,8 +34,8 @@ export default function SideBar() {
           onClick={createNewChat}
         >
           <img className="w-14" src={newTicketIcon} alt="" />
-          <div className="group-hover:block absolute px-4 opacity-90 rounded-4xl py-2 w-max text-sm bg-black/[0.5] hidden">
-            Book New Ticket
+          <div className="group-hover:block absolute px-4 mt-6 opacity-90 rounded-4xl py-2 w-max text-sm bg-black/[0.5] hidden">
+            Book New Movie
           </div>
         </div>
         <div
@@ -121,35 +49,47 @@ export default function SideBar() {
           ) : (
             <img className="w-8" src={sideBarIconOpen}></img>
           )}
-          <div className="group-hover:block absolute px-4 opacity-90 rounded-4xl py-2 w-max text-sm bg-black/[0.5] hidden">
+          <div className="group-hover:block absolute px-4 mt-6 opacity-90 rounded-4xl py-2 w-max text-sm bg-black/[0.5] hidden">
             {collapsed ? "Close Sidebar" : "Open Sidebar"}
           </div>
         </div>
       </div>
 
       {chatIds ? (
-        chatIds.map((chatId, index) => (
-          <NavLink
-            key={index}
-            to={`/chat/${chatId}`}
-            className={`${
-              collapsed ? "w-full" : "hidden"
-            } hover:bg-[#313131] group relative h-fit px-4 py-2 transition-all duration-300 ease-out rounded-lg`}
-          >
-            {localStorage.getItem("chatTitle")} {index + 1}
-            <div className="group-hover:block absolute px-4 opacity-90 rounded-4xl py-2 w-max text-sm bg-black/[0.5] hidden">
-              {chatId}
+        <>
+          {chatIds.map((chatId, index) => (
+            <div
+              key={index}
+              className={`${
+                collapsed ? "w-full" : "hidden"
+              }  group flex hover:bg-[#313131] flex-row justify-between px-2 relative h-fit transition-all duration-300 ease-out rounded-lg`}
+            >
+              <NavLink to={`/chat/${chatId}`} className="px-4 py-2">
+                {localStorage.getItem("chatTitle")} {index + 1}
+              </NavLink>
+
+              <div className="group-hover:block relative opacity-90 cursor-pointer rounded-4xl w-max text-sm hidden">
+                <div
+                  className="p-2 rounded-full"
+                  onClick={() => {
+                    deleteChat(chatId);
+                  }}
+                >
+                  <img className="w-6" src={deleteBtn} alt="" />
+                </div>
+              </div>
             </div>
-          </NavLink>
-        ))
+          ))}
+        </>
       ) : (
         <div
           onClick={createNewChat}
           className={`${
             collapsed ? "w-full" : "hidden"
-          } hover:bg-[#313131] h-fit px-4 py-2 transition-all duration-300 ease-out rounded-lg`}
+          } hover:bg-[#313131] h-fit px-4 py-2 flex flex-row gap-2 items-center justify-center transition-all duration-300 ease-out rounded-lg cursor-pointer`}
         >
           Book New Movie
+          <img className="w-6" src={newTicketIcon2} alt="" />
         </div>
       )}
     </div>

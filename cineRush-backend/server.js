@@ -33,7 +33,7 @@ const groq = new Groq({
 // API Endpoint for Chat Completion
 app.post("/api/chat", async (req, res) => {
   try {
-    const { messages } = req.body; // Get the messages from the request body
+    const { messages } = req.body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return res
@@ -43,7 +43,7 @@ app.post("/api/chat", async (req, res) => {
 
     const response = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
-      messages: messages, // Pass the messages from the request
+      messages: messages,
       temperature: 1,
       max_completion_tokens: 1024,
       top_p: 1,
@@ -56,7 +56,7 @@ app.post("/api/chat", async (req, res) => {
 
     const jsonResponse = JSON.parse(
       response.choices[0].message.content || "{}"
-    ); // Handle empty responses
+    );
 
     res.json(jsonResponse); // Send the JSON response back to the client
   } catch (error) {
@@ -65,7 +65,6 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// API Endpoint for User Creation
 app.use("/api/user", userRouter);
 app.use("/api/chat", chatRouter);
 

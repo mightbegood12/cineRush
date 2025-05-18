@@ -1,4 +1,5 @@
 import chatModel from "../models/chatModel.js";
+import userModel from "../models/userModel.js";
 
 const createChat = async (req, res) => {
   try {
@@ -16,17 +17,21 @@ const createChat = async (req, res) => {
     const chat = await newChat.save();
     res.status(201).json({ success: true, chat });
   } catch (error) {
-    console.log(error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
 const updateChat = async (req, res) => {
-  const { chatId, messages } = req.body;
+  const { chatId, messages, movieData } = req.body;
   try {
     const updatedChat = await chatModel.findOneAndUpdate(
       { chatId: chatId }, // Find chat by chatId
-      { $set: { messages: messages } } // Updates existing array
+      {
+        $set: {
+          messages: messages,
+          movieData: movieData,
+        },
+      } // Updates
     );
     if (!updatedChat) {
       return res.status(404).json({ success: false, error: "Chat not found" });
@@ -52,6 +57,7 @@ const fetchChat = async (req, res) => {
       success: true,
       messages: chat.messages,
       chatTitle: chat.chatTitle,
+      movieData: chat.movieData,
     });
   } catch (error) {
     console.error("Error fetching chat", error);
@@ -59,4 +65,25 @@ const fetchChat = async (req, res) => {
   }
 };
 
-export { createChat, updateChat, fetchChat };
+const deleteChat = async (req, res) => {
+  try {
+    const { chatId, user_id } = req.body;
+    const chat = await chatModel.findOneAndDelete({ chatId });
+    const user = await userModel.findOneAndUpdate(
+      { user_id: user_id }, // Find user by user_id
+      { $pull: { chatIds: chatId } } // Updates existing array
+    );
+    if (!chat && !user) {
+      return res.status(404).json({ success: false, error: "Chat not found" });
+    }
+    res.status(201).json({
+      success: true,
+      message: "Chat Deleted Successfully!",
+    });
+  } catch (error) {
+    console.error("Error Deleting chat", error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+};
+
+export { createChat, updateChat, fetchChat, deleteChat };

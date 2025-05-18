@@ -4,7 +4,7 @@ import { NavLink } from "react-router-dom";
 export default function Navbar() {
   const { isSignedIn } = useUser();
   return isSignedIn ? (
-    <div className="absolute right-4 p-4 text-white text-md">
+    <div className="absolute z-50 right-4 p-4 text-white text-md">
       <UserButton />
     </div>
   ) : (

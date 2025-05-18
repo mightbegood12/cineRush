@@ -1,65 +1,8 @@
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import { v4 as uuidv4 } from "uuid";
 import Navbar from "../components/Navbar";
-import { toast } from "react-toastify";
-import axios from "axios";
-import { useUser } from "@clerk/clerk-react";
-import { backendURL } from "../config/backendConfig";
-export default function Home({ isSignedIn }: { isSignedIn?: boolean }) {
-  const navigate = useNavigate();
-  const { user } = useUser();
-
-  const updateUser = async (user_id: string | undefined, chatId: string) => {
-    try {
-      const response = await axios.put(`${backendURL}/api/user/update`, {
-        user_id: user_id,
-        chatId: chatId,
-      });
-      if (response.data.success) {
-        console.log(response.data.success);
-      }
-    } catch (error) {
-      toast.error(`${error}`);
-    }
-  };
-
-  const createChatMessages = async (
-    user_id: string | undefined,
-    chatId: string
-  ) => {
-    try {
-      const response = await axios.post(
-        `${backendURL}/api/chat/createMessages`,
-        {
-          user_id: user_id,
-          chatId: chatId,
-        }
-      );
-      if (response.data.success) {
-        toast.success("New Chat Created!");
-      }
-    } catch (error) {
-      toast.error(`Error: ${error}`);
-    }
-  };
-
-  const createNewChat = () => {
-    if (!isSignedIn || undefined) {
-      toast.error("Please Signin to continue!");
-      return;
-    } else {
-      const chatId = uuidv4();
-      updateUser(user?.id, chatId)
-        .then(() => {
-          createChatMessages(user?.id, chatId);
-          navigate(`/chat/${chatId}`);
-        })
-        .catch((error) => {
-          console.error("Failed to create new chat:", error);
-        });
-    }
-  };
+import { useAppContext } from "../context/AppContext";
+export default function Home() {
+  const { createNewChat } = useAppContext();
   return (
     <>
       <Navbar />

@@ -9,6 +9,7 @@ import ChatPage from "./pages/ChatPage.js";
 import axios from "axios";
 import { useCallback, useEffect, useState } from "react";
 import { backendURL } from "./config/backendConfig.tsx";
+import { AppProvider } from "./context/AppContext.tsx";
 
 function App() {
   const { isSignedIn } = useAuth();
@@ -40,28 +41,30 @@ function App() {
 
   return (
     <Router>
-      <ToastContainer
-        position="top-center"
-        autoClose={2000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="dark"
-        transition={Bounce}
-      />
-      <Routes>
-        <Route path="/" element={<Home isSignedIn={isSignedIn} />} />
-        <Route path="/login" element={<Login />} />
-        <Route
-          path="/chat/:chatId"
-          element={isSignedIn ? <ChatPage /> : <RedirectToSignIn />}
+      <AppProvider>
+        <ToastContainer
+          position="top-center"
+          autoClose={2000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="dark"
+          transition={Bounce}
         />
-        <Route path="*" element={<PageNotFound />} />
-      </Routes>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/chat/:chatId"
+            element={isSignedIn ? <ChatPage /> : <RedirectToSignIn />}
+          />
+          <Route path="*" element={<PageNotFound />} />
+        </Routes>
+      </AppProvider>
     </Router>
   );
 }

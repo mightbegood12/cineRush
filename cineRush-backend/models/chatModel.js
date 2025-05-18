@@ -20,6 +20,18 @@ const chatSchema = new mongoose.Schema({
     required: false,
     default: [],
   },
+  movieData: {
+    type: Object,
+    required: false,
+    default: {
+      date: null,
+      location: null,
+      movie_name: null,
+      preferences: { seats: null, type: null },
+      time: null,
+      can_book: false,
+    },
+  },
 });
 
 const chatModel = mongoose.model("Chat", chatSchema);

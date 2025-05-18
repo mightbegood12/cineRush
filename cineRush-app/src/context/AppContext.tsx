@@ -4,11 +4,13 @@ import { v4 as uuidv4 } from "uuid";
 import { toast } from "react-toastify";
 import { backendURL } from "../config/backendConfig";
 import { useAuth, useUser } from "@clerk/clerk-react";
+import { useNavigate } from "react-router-dom";
 
 interface AppContextProps {
   chatIds: string[];
   createNewChat: () => void;
   fetchChatIds: () => void;
+  deleteChat: (chatId: string) => void;
 }
 
 const AppContext = createContext<AppContextProps | undefined>(undefined);
@@ -19,6 +21,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [chatIds, setChatIds] = useState<string[]>([]);
   const { user } = useUser();
   const { isSignedIn } = useAuth();
+  const navigate = useNavigate();
 
   const fetchChatIds = async () => {
     if (!user?.id) return;
@@ -48,6 +51,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   };
 
+  const deleteChat = async (chatId: string) => {
+    try {
+      const response = await axios.put(`${backendURL}/api/chat/deleteChat`, {
+        chatId,
+        user_id: user?.id,
+      });
+      if (response) {
+        toast.success(response.data.message);
+        await fetchChatIds();
+
+        // Navigate to the first available chat (if any)
+        if (chatIds.length > 1) {
+          navigate(`/chat/${chatIds.find((id) => id !== chatId)}`);
+        } else {
+          navigate("/"); // or a default page
+        }
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Cannot be deleted");
+    }
+  };
+
   const createNewChat = async () => {
     if (!isSignedIn || !user?.id) {
       toast.error("Please Sign in to continue!");
@@ -59,6 +85,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       await updateUser(user.id, chatId);
       await createChatMessages(user.id, chatId);
       toast.success("New Chat Created!");
+      navigate(`/chat/${chatId}`);
       await fetchChatIds(); // refresh chat list
     } catch (error) {
       toast.error("Error creating chat");
@@ -72,8 +99,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!isSignedIn) {
+      setChatIds([]);
+      navigate("/");
+    }
+  }, [isSignedIn]);
+
   return (
-    <AppContext.Provider value={{ chatIds, createNewChat, fetchChatIds }}>
+    <AppContext.Provider
+      value={{ chatIds, createNewChat, fetchChatIds, deleteChat }}
+    >
       {children}
     </AppContext.Provider>
   );
