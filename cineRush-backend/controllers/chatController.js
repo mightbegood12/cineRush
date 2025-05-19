@@ -38,11 +38,36 @@ const updateChat = async (req, res) => {
     }
     res.status(201).json({
       success: true,
+      message: "ChatStatus updated",
+    });
+  } catch (error) {
+    console.error("Error updating chat", error);
+    res
+      .status(500)
+      .json({ success: false, error: "Error Updating Chat Messages" });
+  }
+};
+
+const updateChatStatus = async (req, res) => {
+  const { chatId, chatStatus } = req.body;
+  try {
+    await chatModel.findOneAndUpdate(
+      { chatId: chatId }, // Find chat by chatId
+      {
+        $set: {
+          chatStatus: chatStatus,
+        },
+      } // Updates
+    );
+    res.status(201).json({
+      success: true,
       message: "Chat updated",
     });
   } catch (error) {
     console.error("Error updating chat", error);
-    res.status(500).json({ success: false, error: "Internal server error" });
+    res
+      .status(500)
+      .json({ success: false, error: "Error Updating Chat Status" });
   }
 };
 
@@ -58,6 +83,7 @@ const fetchChat = async (req, res) => {
       messages: chat.messages,
       chatTitle: chat.chatTitle,
       movieData: chat.movieData,
+      chatStatus: chat.chatStatus,
     });
   } catch (error) {
     console.error("Error fetching chat", error);
@@ -86,4 +112,4 @@ const deleteChat = async (req, res) => {
   }
 };
 
-export { createChat, updateChat, fetchChat, deleteChat };
+export { createChat, updateChat, fetchChat, deleteChat, updateChatStatus };

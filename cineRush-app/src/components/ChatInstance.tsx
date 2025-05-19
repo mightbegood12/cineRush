@@ -1,13 +1,13 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import sendbtn from "../assets/send-btn.svg";
 import moreBtn from "../assets/moreBtn.svg";
-import crossBtn from "../assets/crossBtn.svg";
 import { motion } from "framer-motion";
 import { useUser } from "@clerk/clerk-react";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { backendURL } from "../config/backendConfig";
 import { useParams } from "react-router-dom";
+import MovieBooking from "./MovieBooking";
 
 export default function ChatInstance() {
   interface Preferences {
@@ -31,7 +31,7 @@ export default function ChatInstance() {
   const [input, setInput] = useState("");
   const [messageSent, setMessageSent] = useState(false);
   const [isloading, setIsloading] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [chatStatus, setChatStatus] = useState("Not Finished");
   const [movieData, setmovieData] = useState<MovieData>({
     date: null,
     location: null,
@@ -40,6 +40,7 @@ export default function ChatInstance() {
     time: null,
     can_book: false,
   });
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -58,6 +59,7 @@ export default function ChatInstance() {
       if (response.data.success) {
         setMessages(response.data.messages);
         setmovieData(response.data.movieData);
+        setChatStatus(response.data.chatStatus);
         localStorage.setItem("chatTitle", response.data.chatTitle);
         const fetchedMessages = response.data.messages;
         if (fetchedMessages.length != 0) {
@@ -102,6 +104,8 @@ export default function ChatInstance() {
     },
     []
   );
+
+  console.log(chatStatus);
 
   // New debounced save function
   const debounceSaveMessages = useCallback(() => {
@@ -324,7 +328,7 @@ export default function ChatInstance() {
           </div>
           <div ref={messagesEndRef} />
         </div>
-        {movieData.can_book && (
+        {movieData.can_book && chatStatus != "Finished" && (
           <>
             <motion.div
               initial={{ opacity: 0, x: 100 }}
@@ -332,24 +336,25 @@ export default function ChatInstance() {
               transition={{ duration: 0.5 }}
               className="h-full w-0.5 bg-[#303030]"
             ></motion.div>
+            <MovieBooking chatId={chatId} movieData={movieData} />
+          </>
+        )}
+        {movieData.can_book && chatStatus == "Finished" && (
+          <>
             <motion.div
-              initial={{ opacity: 0, x: 100 }}
+              initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
-              className="flex group justify-center items-center p-4 h-max sticky top-32"
-            >
-              <div className="w-[500px] relative flex flex-col gap-2 h-[400px] hover:blur-sm transition-all duration-200 overflow-hidden rounded-xl shadow-md">
-                <div className="w-full text-center animate-pulse font-black text-2xl h-full bg-white/[0.6]"></div>
+              className="h-full w-0.5 bg-[#303030]"
+            ></motion.div>
+            <div className="flex group justify-center items-center p-4 h-max sticky top-32">
+              <div className="w-[600px] m-4 bg-[#171717] relative text-2xl text-white flex flex-col justify-center items-center gap-2 h-[400px] transition-all duration-200 overflow-hidden rounded-xl shadow-md">
+                <div className="p-12 text-center">
+                  Booking Already Finished. Start a new chat for booking more
+                  tickets.
+                </div>
               </div>
-              <div
-                onClick={() => {
-                  setExpanded(!expanded);
-                }}
-                className="group-hover:block absolute hover:bg-white hover:text-black transition-all duration-300 cursor-pointer ease-in-out hidden px-4 py-2 bg-[#212121] rounded-2xl text-white"
-              >
-                Click to See Progress
-              </div>
-            </motion.div>
+            </div>
           </>
         )}
       </motion.div>
@@ -362,12 +367,20 @@ export default function ChatInstance() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Book me a ticket for The Batman movie this weekend in PVR, chennai at 10:00 AM tomorrow."
-              className="flex-1 shadow-md border-[1px] border-white/[0.1] px-4 py-3 rounded-xl bg-[#303030] focus:outline-none"
+              placeholder={
+                chatStatus == "Finished"
+                  ? "Chat has ended. Start a new chat to book more tickets"
+                  : "Book me a ticket for The Batman movie this weekend in PVR, chennai at 10:00 AM tomorrow."
+              }
+              className={`${
+                chatStatus == "Finished" ? "text-red" : "text-gray"
+              } flex-1 shadow-md border-[1px] border-white/[0.1] px-4 py-3 rounded-xl bg-[#303030] focus:outline-none`}
+              disabled={chatStatus === "Finished"}
             />
             <button
               type="submit"
               className="shadow-md bg-[#303030] text-white border-[1px] border-white/[0.1] rounded-full hover:bg-white"
+              disabled={chatStatus === "Finished"}
             >
               <img
                 className="w-10 h-10 hover:invert transition-colors p-2"
@@ -380,7 +393,7 @@ export default function ChatInstance() {
       </div>
       {/* Movie Data */}
       {movieData && (
-        <div className="absolute top-8 right-0 m-12 z-40">
+        <div className="absolute top-8 right-0 m-12 z-20">
           <div className="relative group">
             <button className="w-10 h-10 p-2 rounded-full border border-white/50 text-white bg-transparent hover:bg-[#313131] transition-colors">
               <img
@@ -417,26 +430,6 @@ export default function ChatInstance() {
           </div>
         </div>
       )}
-
-      <div
-        className={`${
-          expanded ? "flex" : "hidden"
-        } absolute z-40 top-0 left-0 justify-center items-center w-screen h-screen overflow-hidden bg-black/80`}
-      >
-        <div
-          onClick={() => {
-            setExpanded(!expanded);
-          }}
-          className="absolute top-2 right-0 select-none m-12 text-white rounded-full hover:bg-[#313131] z-20"
-        >
-          <img className="w-12 h-12" src={crossBtn} />
-        </div>
-        <iframe
-          src="https://app.hyperbrowser.ai"
-          className="w-[1000px] h-[600px]"
-          loading="lazy"
-        ></iframe>
-      </div>
     </main>
   );
 }

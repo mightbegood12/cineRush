@@ -5,7 +5,8 @@ import { Groq } from "groq-sdk";
 import dotenv from "dotenv";
 import connectdatabase from "./config/mongodbconfig.js";
 import userRouter from "./routes/userRouter.js";
-import chatRouter from "./routes/chatRoute.js";
+import chatRouter from "./routes/chatRouter.js";
+import bookingRouter from "./routes/bookingRouter.js";
 const app = express();
 const port = process.env.PORT || 3001; // Use a port, e.g., 3001
 
@@ -67,6 +68,7 @@ app.post("/api/chat", async (req, res) => {
 
 app.use("/api/user", userRouter);
 app.use("/api/chat", chatRouter);
+app.use("/api/bookticket", bookingRouter);
 
 // Start the server
 app.listen(port, () => {

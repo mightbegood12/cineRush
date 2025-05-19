@@ -32,6 +32,10 @@ const chatSchema = new mongoose.Schema({
       can_book: false,
     },
   },
+  chatStatus: {
+    type: String,
+    default: "Not Completed",
+  },
 });
 
 const chatModel = mongoose.model("Chat", chatSchema);
