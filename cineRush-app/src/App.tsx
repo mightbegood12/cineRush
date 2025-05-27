@@ -32,7 +32,6 @@ function App() {
     }
   }, [user]);
 
-  // Run the effect only when userCreated is false
   useEffect(() => {
     if (!userCreated && user) {
       createUser();
