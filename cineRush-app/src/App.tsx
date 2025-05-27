@@ -1,15 +1,15 @@
 import "./App.css";
-import Home from "./pages/Home.tsx";
-import Login from "./pages/Login.tsx";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import PageNotFound from "./pages/PageNotFound.tsx";
 import { RedirectToSignIn, useAuth, useUser } from "@clerk/clerk-react";
 import { Bounce, toast, ToastContainer } from "react-toastify";
-import ChatPage from "./pages/ChatPage.js";
+import ChatPage from "./pages/ChatPage";
 import axios from "axios";
 import { useCallback, useEffect, useState } from "react";
-import { backendURL } from "./config/backendConfig.tsx";
-import { AppProvider } from "./context/AppContext.tsx";
+import { backendURL } from "./config/backendConfig";
+import { AppProvider } from "./context/AppContext";
 
 function App() {
   const { isSignedIn } = useAuth();
