@@ -1,11 +1,11 @@
 import "./App.css";
-import Login from "./pages/Login";
 import Home from "./pages/Home";
+import Login from "./pages/Login";
+import PageNotFound from "./pages/PageNotFound";
+import ChatPage from "./pages/ChatPage";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import PageNotFound from "./pages/PageNotFound.tsx";
 import { RedirectToSignIn, useAuth, useUser } from "@clerk/clerk-react";
 import { Bounce, toast, ToastContainer } from "react-toastify";
-import ChatPage from "./pages/ChatPage";
 import axios from "axios";
 import { useCallback, useEffect, useState } from "react";
 import { backendURL } from "./config/backendConfig";
