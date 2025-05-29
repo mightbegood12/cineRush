@@ -105,8 +105,6 @@ export default function ChatInstance() {
     []
   );
 
-  console.log(chatStatus);
-
   // New debounced save function
   const debounceSaveMessages = useCallback(() => {
     // Mark that we have pending changes
