@@ -1,6 +1,6 @@
 import "./App.css";
-import Home from "./pages/Home";
 import Login from "./pages/Login";
+import Home from "./pages/Home";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import PageNotFound from "./pages/PageNotFound.tsx";
 import { RedirectToSignIn, useAuth, useUser } from "@clerk/clerk-react";
